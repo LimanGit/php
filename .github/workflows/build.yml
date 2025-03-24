@@ -1,50 +1,88 @@
-name: Build & Release PHP
+name: Build PHP with Phar Support
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'PHP version (e.g., 8.2.10)'
+        description: 'PHP Version (e.g., 8.2.10)'
         required: true
         type: string
 
 jobs:
-  build:
+  build-php:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libxml2-dev libssl-dev libcurl4-openssl-dev pkg-config libonig-dev libsqlite3-dev bison re2c wget
+    - name: Set up dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          libxml2-dev \
+          libcurl4-openssl-dev \
+          libjpeg-dev \
+          libpng-dev \
+          libfreetype6-dev \
+          libicu-dev \
+          libssl-dev \
+          libbz2-dev \
+          libsqlite3-dev \
+          libgmp-dev \
+          autoconf \
+          bison \
+          re2c \
+          libmcrypt-dev \
+          libzip-dev \
+          pkg-config \
+          wget \
+          curl \
+          git \
+          libargon2-dev \
+          zlib1g-dev
 
-      - name: Download PHP Source
-        run: |
-          wget https://www.php.net/distributions/php-${{ github.event.inputs.version }}.tar.gz
-          tar -xzf php-${{ github.event.inputs.version }}.tar.gz
+    - name: Download PHP Source
+      run: |
+        VERSION=${{ github.event.inputs.version }}
+        wget https://www.php.net/distributions/php-${VERSION}.tar.bz2
+        tar -xjf php-${VERSION}.tar.bz2
+        cd php-${VERSION}
 
-      - name: Configure & Build PHP CLI
-        working-directory: php-${{ github.event.inputs.version }}
-        run: |
-          ./configure --prefix=$PWD/install --disable-all --enable-cli
-          make -j$(nproc)
-          make install
+    - name: Configure PHP with Phar support
+      run: |
+        cd php-${{ github.event.inputs.version }}
+        ./configure --prefix=/home/ubuntu/php --enable-phar --with-zlib-dir --with-curl --with-openssl --enable-bcmath --enable-fpm --enable-mbstring --enable-soap --with-bz2 --enable-sockets --enable-sysvsem --enable-sysvshm --with-kerberos
+      env:
+        PHP_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Package Compiled Binary
-        run: |
-          tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz -C php-${{ github.event.inputs.version }}/install bin
+    - name: Compile PHP
+      run: |
+        cd php-${{ github.event.inputs.version }}
+        make -j$(nproc)
+        make install
 
-      - name: Create GitHub Release and Upload Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: "PHP v${{ github.event.inputs.version }} Release"
-          body: "PHP CLI binary for version ${{ github.event.inputs.version }} built on Ubuntu x86_64."
-          files: |
-            php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Verify PHP installation
+      run: |
+        /home/ubuntu/php/bin/php -v
+        /home/ubuntu/php/bin/php -m | grep phar
+
+    - name: Upload PHP binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: php-binary
+        path: /home/ubuntu/php/bin/php
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: PHP v${{ github.event.inputs.version }} with Phar
+        tag_name: v${{ github.event.inputs.version }}
+        body: "Compiled PHP v${{ github.event.inputs.version }} with Phar support"
+        files: |
+          /home/ubuntu/php/bin/php
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
