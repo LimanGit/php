@@ -30,14 +30,14 @@ jobs:
       run: |
         mkdir -p $HOME/php/bin
         cp -r /usr/bin/* $HOME/php/bin/
-        cd $HOME/php
-        tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz bin
+        cd $HOME
+        tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz php
 
     - name: Upload tarball as artifact
       uses: actions/upload-artifact@v4
       with:
         name: php-binary-${{ github.event.inputs.version }}
-        path: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+        path: $HOME/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -45,6 +45,6 @@ jobs:
         name: PHP ${{ github.event.inputs.version }} Release
         tag_name: php-${{ github.event.inputs.version }}
         body: PHP ${{ github.event.inputs.version }} binaries
-        files: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+        files: $HOME/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
