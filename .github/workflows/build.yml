@@ -1,16 +1,19 @@
 name: Build & Release PHP
 
 on:
-  push:
-    tags:
-      - 'v*'  # Trigger on tags starting with "v", e.g. v8.2.10
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'PHP version (e.g., 8.2.10)'
+        required: true
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Install Build Dependencies
         run: |
@@ -19,36 +22,29 @@ jobs:
 
       - name: Download PHP Source
         run: |
-          # Set your desired PHP version here (matches your tag name ideally)
-          PHP_VERSION=${GITHUB_REF#refs/tags/v}
-          wget https://www.php.net/distributions/php-${PHP_VERSION}.tar.gz
-          tar -xzf php-${PHP_VERSION}.tar.gz
+          wget https://www.php.net/distributions/php-${{ github.event.inputs.version }}.tar.gz
+          tar -xzf php-${{ github.event.inputs.version }}.tar.gz
 
-      - name: Configure & Build PHP
-        working-directory: php-${{ github.ref_name | replace('v', '') }}
+      - name: Configure & Build PHP CLI
+        working-directory: php-${{ github.event.inputs.version }}
         run: |
-          # Install only PHP-CLI with minimal configuration.
           ./configure --prefix=$PWD/install --disable-all --enable-cli
           make -j$(nproc)
           make install
 
       - name: Package Compiled Binary
         run: |
-          # Create a tarball containing the compiled binary.
-          tar -czvf php-${{ github.ref_name | replace('v', '') }}-linux-x86_64.tar.gz -C php-${{ github.ref_name | replace('v', '') }}/install bin
+          tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz -C php-${{ github.event.inputs.version }}/install bin
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release and Upload Asset
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          name: "PHP v${{ github.ref_name | replace('v', '') }} Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          files: php-${{ github.ref_name | replace('v', '') }}-linux-x86_64.tar.gz
+          tag_name: v${{ github.event.inputs.version }}
+          name: "PHP v${{ github.event.inputs.version }} Release"
+          body: "PHP CLI binary for version ${{ github.event.inputs.version }} built on Ubuntu x86_64."
+          files: |
+            php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
