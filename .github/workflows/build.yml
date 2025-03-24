@@ -21,7 +21,7 @@ jobs:
 
     - name: Install PHP from apt repository
       run: |
-        sudo apt-get install -y php${{ github.event.inputs.version }} php${{ github.event.inputs.version }}-cli php${{ github.event.inputs.version }}-common php${{ github.event.inputs.version }}-mbstring php${{ github.event.inputs.version }}-xml php${{ github.event.inputs.version }}-curl php${{ github.event.inputs.version }}-zip php${{ github.event.inputs.version }}-bz2 php${{ github.event.inputs.version }}-memcached php${{ github.event.inputs.version }}-soap
+        sudo apt-get install php php-cli php-fpm php-json php-common php-mysql php-zip php-gd php-mbstring php-curl php-xml php-pear php-bcmath
 
     - name: Verify PHP installation
       run: php -v
