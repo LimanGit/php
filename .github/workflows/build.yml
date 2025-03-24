@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Update apt repository
       run: sudo apt-get update
@@ -37,7 +37,7 @@ jobs:
         tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz bin
 
     - name: Upload tarball as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: php-binary-${{ github.event.inputs.version }}
         path: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
