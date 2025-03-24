@@ -41,8 +41,8 @@ jobs:
           curl \
           git \
           libargon2-dev \
-          zlib1g-dev
-
+          zlib1g-dev \
+          libonig-dev
     - name: Download PHP Source
       run: |
         VERSION=${{ github.event.inputs.version }}
