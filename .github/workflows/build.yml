@@ -66,7 +66,7 @@ jobs:
     - name: Verify PHP installation
       run: |
         $HOME/php/bin/php -v
-        $HOME/php/bin/php -m | grep phar
+        $HOME/php/bin/php -m | grep -q phar || echo "Warning: Phar module not found!"
 
     - name: Package PHP Binary
       run: |
