@@ -37,7 +37,7 @@ jobs:
         tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz bin
 
     - name: Upload tarball as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: php-binary-${{ github.event.inputs.version }}
         path: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
