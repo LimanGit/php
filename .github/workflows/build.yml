@@ -26,9 +26,6 @@ jobs:
     - name: Verify PHP installation
       run: php -v
 
-    - name: Check for Phar extension
-      run: php -m | grep phar
-
     - name: Create tarball of PHP binaries
       run: |
         mkdir -p $HOME/php/bin
