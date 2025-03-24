@@ -16,7 +16,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -43,17 +43,17 @@ jobs:
           libargon2-dev \
           zlib1g-dev \
           libonig-dev
+
     - name: Download PHP Source
       run: |
         VERSION=${{ github.event.inputs.version }}
         wget https://www.php.net/distributions/php-${VERSION}.tar.bz2
         tar -xjf php-${VERSION}.tar.bz2
-        cd php-${VERSION}
 
     - name: Configure PHP with Phar support
       run: |
         cd php-${{ github.event.inputs.version }}
-        ./configure --prefix=/home/ubuntu/php --enable-phar --with-zlib-dir --with-curl --with-openssl --enable-bcmath --enable-fpm --enable-mbstring --enable-soap --with-bz2 --enable-sockets --enable-sysvsem --enable-sysvshm --with-kerberos
+        ./configure --prefix=$HOME/php --enable-phar --with-zlib-dir --with-curl --with-openssl --enable-bcmath --enable-fpm --enable-mbstring --enable-soap --with-bz2 --enable-sockets --enable-sysvsem --enable-sysvshm --with-kerberos
       env:
         PHP_VERSION: ${{ github.event.inputs.version }}
 
@@ -65,14 +65,19 @@ jobs:
 
     - name: Verify PHP installation
       run: |
-        /home/ubuntu/php/bin/php -v
-        /home/ubuntu/php/bin/php -m | grep phar
+        $HOME/php/bin/php -v
+        $HOME/php/bin/php -m | grep phar
 
-    - name: Upload PHP binary
+    - name: Package PHP Binary
+      run: |
+        cd $HOME/php/bin
+        tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz php
+
+    - name: Upload PHP binary artifact
       uses: actions/upload-artifact@v4
       with:
         name: php-binary
-        path: /home/ubuntu/php/bin/php
+        path: $HOME/php/bin/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
@@ -81,7 +86,7 @@ jobs:
         tag_name: v${{ github.event.inputs.version }}
         body: "Compiled PHP v${{ github.event.inputs.version }} with Phar support"
         files: |
-          /home/ubuntu/php/bin/php
+          $HOME/php/bin/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
         draft: false
         prerelease: false
       env:
