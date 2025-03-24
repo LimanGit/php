@@ -1,93 +1,53 @@
-name: Build PHP with Phar Support
+name: Install PHP and Create Release
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'PHP Version (e.g., 8.2.10)'
+        description: 'PHP version to install (e.g., 8.4)'
         required: true
         type: string
 
 jobs:
-  build-php:
+  install-php:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: Checkout the repository
+      uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          libxml2-dev \
-          libcurl4-openssl-dev \
-          libjpeg-dev \
-          libpng-dev \
-          libfreetype6-dev \
-          libicu-dev \
-          libssl-dev \
-          libbz2-dev \
-          libsqlite3-dev \
-          libgmp-dev \
-          autoconf \
-          bison \
-          re2c \
-          libmcrypt-dev \
-          libzip-dev \
-          pkg-config \
-          wget \
-          curl \
-          git \
-          libargon2-dev \
-          zlib1g-dev \
-          libonig-dev
+    - name: Update apt repository
+      run: sudo apt-get update
 
-    - name: Download PHP Source
+    - name: Install PHP from apt repository
       run: |
-        VERSION=${{ github.event.inputs.version }}
-        wget https://www.php.net/distributions/php-${VERSION}.tar.bz2
-        tar -xjf php-${VERSION}.tar.bz2
-
-    - name: Configure PHP with Phar support
-      run: |
-        cd php-${{ github.event.inputs.version }}
-        ./configure --prefix=$HOME/php --enable-phar --with-zlib-dir --with-curl --with-openssl --enable-bcmath --enable-fpm --enable-mbstring --enable-soap --with-bz2 --enable-sockets --enable-sysvsem --enable-sysvshm --with-kerberos
-      env:
-        PHP_VERSION: ${{ github.event.inputs.version }}
-
-    - name: Compile PHP
-      run: |
-        cd php-${{ github.event.inputs.version }}
-        make -j$(nproc)
-        make install
+        sudo apt-get install -y php${{ github.event.inputs.version }} php${{ github.event.inputs.version }}-cli php${{ github.event.inputs.version }}-common php${{ github.event.inputs.version }}-mbstring php${{ github.event.inputs.version }}-xml php${{ github.event.inputs.version }}-curl php${{ github.event.inputs.version }}-zip php${{ github.event.inputs.version }}-bz2 php${{ github.event.inputs.version }}-memcached php${{ github.event.inputs.version }}-soap
 
     - name: Verify PHP installation
-      run: |
-        $HOME/php/bin/php -v
-        $HOME/php/bin/php -m | grep -q phar || echo "Warning: Phar module not found!"
+      run: php -v
 
-    - name: Package PHP Binary
-      run: |
-        cd $HOME/php/bin
-        tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz php
+    - name: Check for Phar extension
+      run: php -m | grep phar
 
-    - name: Upload PHP binary artifact
-      uses: actions/upload-artifact@v4
+    - name: Create tarball of PHP binaries
+      run: |
+        mkdir -p $HOME/php/bin
+        cp -r /usr/bin/* $HOME/php/bin/
+        cd $HOME/php
+        tar -czvf php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz bin
+
+    - name: Upload tarball as artifact
+      uses: actions/upload-artifact@v2
       with:
-        name: php-binary
-        path: $HOME/php/bin/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+        name: php-binary-${{ github.event.inputs.version }}
+        path: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        name: PHP v${{ github.event.inputs.version }} with Phar
-        tag_name: v${{ github.event.inputs.version }}
-        body: "Compiled PHP v${{ github.event.inputs.version }} with Phar support"
-        files: |
-          $HOME/php/bin/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
-        draft: false
-        prerelease: false
+        name: PHP ${{ github.event.inputs.version }} Release
+        tag_name: php-${{ github.event.inputs.version }}
+        body: PHP ${{ github.event.inputs.version }} binaries
+        files: $HOME/php/php-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
