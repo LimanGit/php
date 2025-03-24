@@ -1,0 +1,54 @@
+name: Build & Release PHP
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags starting with "v", e.g. v8.2.10
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libxml2-dev libssl-dev libcurl4-openssl-dev pkg-config libonig-dev libsqlite3-dev bison re2c wget
+
+      - name: Download PHP Source
+        run: |
+          # Set your desired PHP version here (matches your tag name ideally)
+          PHP_VERSION=${GITHUB_REF#refs/tags/v}
+          wget https://www.php.net/distributions/php-${PHP_VERSION}.tar.gz
+          tar -xzf php-${PHP_VERSION}.tar.gz
+
+      - name: Configure & Build PHP
+        working-directory: php-${{ github.ref_name | replace('v', '') }}
+        run: |
+          # Install only PHP-CLI with minimal configuration.
+          ./configure --prefix=$PWD/install --disable-all --enable-cli
+          make -j$(nproc)
+          make install
+
+      - name: Package Compiled Binary
+        run: |
+          # Create a tarball containing the compiled binary.
+          tar -czvf php-${{ github.ref_name | replace('v', '') }}-linux-x86_64.tar.gz -C php-${{ github.ref_name | replace('v', '') }}/install bin
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: "PHP v${{ github.ref_name | replace('v', '') }} Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: php-${{ github.ref_name | replace('v', '') }}-linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
